@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../config/app_colors.dart';
 import '../../config/measures.dart';
+import 'type_account.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -142,12 +143,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Cuenta creada correctamente. Ya puedes iniciar sesion.'),
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (_) => TypeAccountScreen(
+            createdUser: userResponse.data!,
+          ),
         ),
       );
-      Navigator.of(context).pop();
     } on AuthException catch (e) {
       _showMessage(e.message);
     } catch (_) {

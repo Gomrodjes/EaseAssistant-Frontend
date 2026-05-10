@@ -172,3 +172,15 @@ class UserUpdateDto {
         'phoneNumber': phoneNumber,
       };
 }
+
+class UserRoleUpdateDto {
+  final UserRole role;
+
+  const UserRoleUpdateDto({
+    required this.role,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'role': EnumMapper.userRoleToJson(role),
+      };
+}
