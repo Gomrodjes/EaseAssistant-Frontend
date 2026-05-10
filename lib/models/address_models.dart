@@ -71,7 +71,7 @@ class AddressSaveDto {
         'country': country,
         'zipCode': zipCode,
         'description': description,
-        'isPrimary': isPrimary,
+        'primary': isPrimary,
         'userId': userId,
       };
 }

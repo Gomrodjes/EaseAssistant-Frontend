@@ -5,17 +5,17 @@ import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
 import '../models/models.dart';
 
-class AuthException implements Exception {
+class AddressException implements Exception {
   final String message;
 
-  const AuthException(this.message);
+  const AddressException(this.message);
 
   @override
   String toString() => message;
 }
 
-class AuthService {
-  AuthService({
+class AddressService {
+  AddressService({
     http.Client? client,
     String? baseUrl,
   })  : _client = client ?? http.Client(),
@@ -26,35 +26,27 @@ class AuthService {
 
   Uri _buildUri(String path) => Uri.parse('$_baseUrl$path');
 
-  Future<ApiResponse<String>> login(LoginRequestDto request) async {
+  Future<ApiResponse<AddressResponseDto>> createAddress(
+    AddressSaveDto request,
+    {
+    String? authToken,
+    }
+  ) async {
     final response = await _client.post(
-      _buildUri('/auth/login'),
-      headers: const {
+      _buildUri('/addresses/create'),
+      headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        if (authToken != null && authToken.isNotEmpty)
+          'Authorization': 'Bearer $authToken',
       },
       body: jsonEncode(request.toJson()),
     );
 
-    return _parseResponse<String>(
+    return _parseResponse<AddressResponseDto>(
       response,
-      (data) => data?.toString() ?? '',
-    );
-  }
-
-  Future<ApiResponse<UserResponseDto>> register(UserSaveDto request) async {
-    final response = await _client.post(
-      _buildUri('/auth/register'),
-      headers: const {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode(request.toJson()),
-    );
-
-    return _parseResponse<UserResponseDto>(
-      response,
-      (data) => UserResponseDto.fromJson(Map<String, dynamic>.from(data as Map)),
+      (data) =>
+          AddressResponseDto.fromJson(Map<String, dynamic>.from(data as Map)),
     );
   }
 
@@ -69,7 +61,7 @@ class AuthService {
       return apiResponse;
     }
 
-    throw AuthException(
+    throw AddressException(
       apiResponse.message.isNotEmpty
           ? apiResponse.message
           : 'Request failed with status ${response.statusCode}',
