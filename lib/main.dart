@@ -67,7 +67,7 @@ class _SplashScreenState extends State<SplashScreen>
       vsync: this,
       duration: _splashDuration,
     )..forward();
-    _phraseTimer = Timer.periodic(const Duration(milliseconds: 1400), (_) {
+    _phraseTimer = Timer.periodic(const Duration(milliseconds: 1800), (_) {
       if (!mounted) return;
       final nextPhrase = (_phrases.where((phrase) => phrase != _selectedPhrase).toList()
             ..shuffle())

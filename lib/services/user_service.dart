@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
+import '../core/secure_storage.dart';
 import '../models/models.dart';
 
 class UserServiceException implements Exception {
@@ -25,6 +26,29 @@ class UserService {
   final String _baseUrl;
 
   Uri _buildUri(String path) => Uri.parse('$_baseUrl$path');
+
+  Future<ApiResponse<List<UserResponseDto>>> getAllUsers() async {
+    final authToken = await SecureStorage.getToken();
+    final response = await _client.get(
+      _buildUri('/users'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        if (authToken != null && authToken.isNotEmpty)
+          'Authorization': 'Bearer $authToken',
+      },
+    );
+
+    return _parseResponse<List<UserResponseDto>>(
+      response,
+      (data) => (data as List<dynamic>)
+          .map(
+            (item) =>
+                UserResponseDto.fromJson(Map<String, dynamic>.from(item as Map)),
+          )
+          .toList(),
+    );
+  }
 
   Future<ApiResponse<UserResponseDto>> updateUserRole(
     int userId,
