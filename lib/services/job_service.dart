@@ -6,17 +6,17 @@ import '../config/app_config.dart';
 import '../core/secure_storage.dart';
 import '../models/models.dart';
 
-class UserServiceException implements Exception {
+class JobServiceException implements Exception {
   final String message;
 
-  const UserServiceException(this.message);
+  const JobServiceException(this.message);
 
   @override
   String toString() => message;
 }
 
-class UserService {
-  UserService({
+class JobService {
+  JobService({
     http.Client? client,
     String? baseUrl,
   })  : _client = client ?? http.Client(),
@@ -27,10 +27,10 @@ class UserService {
 
   Uri _buildUri(String path) => Uri.parse('$_baseUrl$path');
 
-  Future<ApiResponse<List<UserResponseDto>>> getAllUsers() async {
+  Future<ApiResponse<List<JobResponseDto>>> getAllJobs() async {
     final authToken = await SecureStorage.getToken();
     final response = await _client.get(
-      _buildUri('/users'),
+      _buildUri('/jobs'),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -39,54 +39,33 @@ class UserService {
       },
     );
 
-    return _parseResponse<List<UserResponseDto>>(
+    return _parseResponse<List<JobResponseDto>>(
       response,
       (data) => (data as List<dynamic>)
           .map(
             (item) =>
-                UserResponseDto.fromJson(Map<String, dynamic>.from(item as Map)),
+                JobResponseDto.fromJson(Map<String, dynamic>.from(item as Map)),
           )
           .toList(),
     );
   }
 
-  Future<ApiResponse<UserResponseDto>> updateUserRole(
-    int userId,
-    UserRoleUpdateDto request,
-  ) async {
-    final response = await _client.put(
-      _buildUri('/auth/select-account-type/$userId'),
-      headers: const {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode(request.toJson()),
-    );
-
-    return _parseResponse<UserResponseDto>(
-      response,
-      (data) => UserResponseDto.fromJson(Map<String, dynamic>.from(data as Map)),
-    );
-  }
-
-  Future<ApiResponse<UserResponseDto>> updateUserActiveStatus(
-    int userId,
-    bool isActive,
-  ) async {
+  Future<ApiResponse<JobResponseDto>> createJob(JobSaveDto request) async {
     final authToken = await SecureStorage.getToken();
-    final response = await _client.put(
-      _buildUri('/users/$userId/active/$isActive'),
+    final response = await _client.post(
+      _buildUri('/jobs/create'),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         if (authToken != null && authToken.isNotEmpty)
           'Authorization': 'Bearer $authToken',
       },
+      body: jsonEncode(request.toJson()),
     );
 
-    return _parseResponse<UserResponseDto>(
+    return _parseResponse<JobResponseDto>(
       response,
-      (data) => UserResponseDto.fromJson(Map<String, dynamic>.from(data as Map)),
+      (data) => JobResponseDto.fromJson(Map<String, dynamic>.from(data as Map)),
     );
   }
 
@@ -101,7 +80,7 @@ class UserService {
       return apiResponse;
     }
 
-    throw UserServiceException(
+    throw JobServiceException(
       apiResponse.message.isNotEmpty
           ? apiResponse.message
           : 'Request failed with status ${response.statusCode}',

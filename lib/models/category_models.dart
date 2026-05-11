@@ -38,20 +38,17 @@ class CategorySaveDto {
   final String name;
   final String? description;
   final bool active;
-  final List<int> serviceIds;
 
   const CategorySaveDto({
     required this.name,
     this.description,
     required this.active,
-    required this.serviceIds,
   });
 
   Map<String, dynamic> toJson() => {
         'name': name,
         'description': description,
         'active': active,
-        'serviceIds': serviceIds,
       };
 }
 

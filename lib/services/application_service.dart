@@ -6,17 +6,17 @@ import '../config/app_config.dart';
 import '../core/secure_storage.dart';
 import '../models/models.dart';
 
-class UserServiceException implements Exception {
+class ApplicationServiceException implements Exception {
   final String message;
 
-  const UserServiceException(this.message);
+  const ApplicationServiceException(this.message);
 
   @override
   String toString() => message;
 }
 
-class UserService {
-  UserService({
+class ApplicationService {
+  ApplicationService({
     http.Client? client,
     String? baseUrl,
   })  : _client = client ?? http.Client(),
@@ -27,10 +27,10 @@ class UserService {
 
   Uri _buildUri(String path) => Uri.parse('$_baseUrl$path');
 
-  Future<ApiResponse<List<UserResponseDto>>> getAllUsers() async {
+  Future<ApiResponse<List<ApplicationResponseDto>>> getAllApplications() async {
     final authToken = await SecureStorage.getToken();
     final response = await _client.get(
-      _buildUri('/users'),
+      _buildUri('/applications'),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -39,54 +39,63 @@ class UserService {
       },
     );
 
-    return _parseResponse<List<UserResponseDto>>(
+    return _parseResponse<List<ApplicationResponseDto>>(
       response,
       (data) => (data as List<dynamic>)
           .map(
-            (item) =>
-                UserResponseDto.fromJson(Map<String, dynamic>.from(item as Map)),
+            (item) => ApplicationResponseDto.fromJson(
+              Map<String, dynamic>.from(item as Map),
+            ),
           )
           .toList(),
     );
   }
 
-  Future<ApiResponse<UserResponseDto>> updateUserRole(
-    int userId,
-    UserRoleUpdateDto request,
-  ) async {
-    final response = await _client.put(
-      _buildUri('/auth/select-account-type/$userId'),
-      headers: const {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode(request.toJson()),
-    );
-
-    return _parseResponse<UserResponseDto>(
-      response,
-      (data) => UserResponseDto.fromJson(Map<String, dynamic>.from(data as Map)),
-    );
-  }
-
-  Future<ApiResponse<UserResponseDto>> updateUserActiveStatus(
-    int userId,
-    bool isActive,
+  Future<ApiResponse<ApplicationResponseDto>> approveApplication(
+    int applicationId,
+    ApplicationReviewDto request,
   ) async {
     final authToken = await SecureStorage.getToken();
     final response = await _client.put(
-      _buildUri('/users/$userId/active/$isActive'),
+      _buildUri('/applications/approved/$applicationId'),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         if (authToken != null && authToken.isNotEmpty)
           'Authorization': 'Bearer $authToken',
       },
+      body: jsonEncode(request.toJson()),
     );
 
-    return _parseResponse<UserResponseDto>(
+    return _parseResponse<ApplicationResponseDto>(
       response,
-      (data) => UserResponseDto.fromJson(Map<String, dynamic>.from(data as Map)),
+      (data) => ApplicationResponseDto.fromJson(
+        Map<String, dynamic>.from(data as Map),
+      ),
+    );
+  }
+
+  Future<ApiResponse<ApplicationResponseDto>> denyApplication(
+    int applicationId,
+    ApplicationReviewDto request,
+  ) async {
+    final authToken = await SecureStorage.getToken();
+    final response = await _client.put(
+      _buildUri('/applications/denied/$applicationId'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        if (authToken != null && authToken.isNotEmpty)
+          'Authorization': 'Bearer $authToken',
+      },
+      body: jsonEncode(request.toJson()),
+    );
+
+    return _parseResponse<ApplicationResponseDto>(
+      response,
+      (data) => ApplicationResponseDto.fromJson(
+        Map<String, dynamic>.from(data as Map),
+      ),
     );
   }
 
@@ -101,7 +110,7 @@ class UserService {
       return apiResponse;
     }
 
-    throw UserServiceException(
+    throw ApplicationServiceException(
       apiResponse.message.isNotEmpty
           ? apiResponse.message
           : 'Request failed with status ${response.statusCode}',
