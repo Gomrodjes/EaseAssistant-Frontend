@@ -7,6 +7,7 @@ import '../../models/models.dart';
 import '../../services/user_service.dart';
 import '../auth/login_screen.dart';
 import 'add_services.dart';
+import 'add_categories.dart';
 import 'auditing.dart';
 import 'user_management.dart';
 
@@ -23,6 +24,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   bool _isLoading = true;
   int _femaleCount = 0;
   int _maleCount = 0;
+  int _otherCount = 0;
   String? _errorMessage;
 
   @override
@@ -49,6 +51,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
 
       var femaleCount = 0;
       var maleCount = 0;
+      var otherCount = 0;
 
       for (final user in users) {
         switch (user.gender) {
@@ -59,6 +62,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             maleCount++;
             break;
           case Gender.other:
+            otherCount++;
+            break;
           case null:
             break;
         }
@@ -69,6 +74,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       setState(() {
         _femaleCount = femaleCount;
         _maleCount = maleCount;
+        _otherCount = otherCount;
         _isLoading = false;
       });
     } on UserServiceException catch (e) {
@@ -97,9 +103,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   }
 
   void _openScreen(Widget screen) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => screen),
-    );
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => screen));
   }
 
   @override
@@ -125,10 +129,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _AdminHeader(
-                  scale: scale,
-                  onLogout: _logout,
-                ),
+                _AdminHeader(scale: scale, onLogout: _logout),
                 SizedBox(height: 18 * scale),
                 _AdminActionButton(
                   label: 'Gestion de usuarios',
@@ -146,6 +147,12 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                   label: 'Anadir Servicios',
                   scale: scale,
                   onTap: () => _openScreen(const AddServices()),
+                ),
+                SizedBox(height: 14 * scale),
+                _AdminActionButton(
+                  label: 'Anadir Categorias',
+                  scale: scale,
+                  onTap: () => _openScreen(const AddCategories()),
                 ),
                 SizedBox(height: 20 * scale),
                 Container(
@@ -170,6 +177,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                   scale: scale,
                   femaleCount: _femaleCount,
                   maleCount: _maleCount,
+                  otherCount: _otherCount,
                   isLoading: _isLoading,
                   errorMessage: _errorMessage,
                 ),
@@ -183,10 +191,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
 }
 
 class _AdminHeader extends StatelessWidget {
-  const _AdminHeader({
-    required this.scale,
-    required this.onLogout,
-  });
+  const _AdminHeader({required this.scale, required this.onLogout});
 
   final double scale;
   final Future<void> Function() onLogout;
@@ -220,11 +225,7 @@ class _AdminHeader extends StatelessWidget {
             onPressed: () {
               onLogout();
             },
-            icon: Icon(
-              Icons.settings,
-              color: Colors.white,
-              size: 42 * scale,
-            ),
+            icon: Icon(Icons.settings, color: Colors.white, size: 42 * scale),
             tooltip: 'Cerrar sesion',
           ),
         ],
@@ -274,11 +275,7 @@ class _AdminActionButton extends StatelessWidget {
                 ),
               ),
             ),
-            Icon(
-              Icons.chevron_right,
-              size: 28 * scale,
-              color: Colors.white,
-            ),
+            Icon(Icons.chevron_right, size: 28 * scale, color: Colors.white),
           ],
         ),
       ),
@@ -291,6 +288,7 @@ class _GenderChartCard extends StatelessWidget {
     required this.scale,
     required this.femaleCount,
     required this.maleCount,
+    required this.otherCount,
     required this.isLoading,
     required this.errorMessage,
   });
@@ -298,6 +296,7 @@ class _GenderChartCard extends StatelessWidget {
   final double scale;
   final int femaleCount;
   final int maleCount;
+  final int otherCount;
   final bool isLoading;
   final String? errorMessage;
 
@@ -335,10 +334,7 @@ class _GenderChartCard extends StatelessWidget {
             Text(
               'Desliza hacia abajo para volver a intentarlo.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.black54,
-                fontSize: 13 * scale,
-              ),
+              style: TextStyle(color: Colors.black54, fontSize: 13 * scale),
             ),
           ],
         ),
@@ -364,6 +360,7 @@ class _GenderChartCard extends StatelessWidget {
             child: _GenderBarChart(
               femaleCount: femaleCount,
               maleCount: maleCount,
+              otherCount: otherCount,
               scale: scale,
             ),
           ),
@@ -383,6 +380,11 @@ class _GenderChartCard extends StatelessWidget {
                 label: 'Hombres: $maleCount',
                 scale: scale,
               ),
+              _ChartLegend(
+                color: AppColors.navyBlue,
+                label: 'Hombres: $otherCount',
+                scale: scale,
+              ),
             ],
           ),
         ],
@@ -395,18 +397,23 @@ class _GenderBarChart extends StatelessWidget {
   const _GenderBarChart({
     required this.femaleCount,
     required this.maleCount,
+    required this.otherCount,
     required this.scale,
   });
 
   final int femaleCount;
   final int maleCount;
+  final int otherCount;
   final double scale;
 
   @override
   Widget build(BuildContext context) {
-    final maxValue = [femaleCount, maleCount, 1].reduce(
-      (value, element) => value > element ? value : element,
-    );
+    final maxValue = [
+      femaleCount,
+      maleCount,
+      otherCount,
+      1,
+    ].reduce((value, element) => value > element ? value : element);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -461,6 +468,13 @@ class _GenderBarChart extends StatelessWidget {
                           _ChartBar(
                             label: 'Hombres',
                             value: maleCount,
+                            maxValue: maxValue,
+                            color: AppColors.navyBlue,
+                            scale: scale,
+                          ),
+                          _ChartBar(
+                            label: 'Otros',
+                            value: otherCount,
                             maxValue: maxValue,
                             color: AppColors.navyBlue,
                             scale: scale,

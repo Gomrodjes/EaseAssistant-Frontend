@@ -43,14 +43,14 @@ class JobSaveDto {
   final String description;
   final double price;
   final int durationMinutes;
-  final String categoryName;
+  final int categoryId;
 
   const JobSaveDto({
     required this.name,
     required this.description,
     required this.price,
     required this.durationMinutes,
-    required this.categoryName,
+    required this.categoryId,
   });
 
   Map<String, dynamic> toJson() => {
@@ -58,6 +58,6 @@ class JobSaveDto {
         'description': description,
         'price': price,
         'durationMinutes': durationMinutes,
-        'categoryName': categoryName,
+        'categoryId': categoryId,
       };
 }
