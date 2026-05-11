@@ -186,7 +186,10 @@ class _AuditUserCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final minCardHeight = 70 * scale;
+
     return Container(
+      constraints: BoxConstraints(minHeight: minCardHeight),
       padding: EdgeInsets.symmetric(
         horizontal: 16 * scale,
         vertical: 12 * scale,
@@ -220,6 +223,7 @@ class _AuditUserCard extends StatelessWidget {
           SizedBox(width: 12 * scale),
           Expanded(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(

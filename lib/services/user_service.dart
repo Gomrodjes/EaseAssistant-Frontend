@@ -69,6 +69,27 @@ class UserService {
     );
   }
 
+  Future<ApiResponse<UserResponseDto>> updateUserActiveStatus(
+    int userId,
+    bool isActive,
+  ) async {
+    final authToken = await SecureStorage.getToken();
+    final response = await _client.put(
+      _buildUri('/users/$userId/active/$isActive'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        if (authToken != null && authToken.isNotEmpty)
+          'Authorization': 'Bearer $authToken',
+      },
+    );
+
+    return _parseResponse<UserResponseDto>(
+      response,
+      (data) => UserResponseDto.fromJson(Map<String, dynamic>.from(data as Map)),
+    );
+  }
+
   ApiResponse<T> _parseResponse<T>(
     http.Response response,
     T Function(dynamic data) parser,
