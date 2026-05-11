@@ -5,6 +5,7 @@ import '../../config/measures.dart';
 import '../../models/models.dart';
 import '../../services/application_service.dart';
 import '../../services/user_service.dart';
+import 'auditing_review_screen.dart';
 
 class Auditing extends StatefulWidget {
   const Auditing({super.key});
@@ -93,53 +94,17 @@ class _AuditingState extends State<Auditing> {
   }
 
   void _showUserDetails(UserResponseDto user) {
-    showDialog<void>(
-      context: context,
-      builder: (context) {
-        final scale = Measures.scale(context);
-
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22 * scale),
+    Navigator.of(context)
+        .push<bool>(
+          MaterialPageRoute<bool>(
+            builder: (_) => AuditingReviewScreen(user: user),
           ),
-          title: Text(
-            user.fullName.isNotEmpty ? user.fullName : 'Usuario sin nombre',
-            style: TextStyle(
-              color: AppColors.navyBlue,
-              fontWeight: FontWeight.w800,
-              fontSize: 20 * scale,
-            ),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _DetailRow(label: 'Email', value: user.email, scale: scale),
-              SizedBox(height: 10 * scale),
-              _DetailRow(
-                label: 'Telefono',
-                value: user.phoneNumber.isNotEmpty
-                    ? user.phoneNumber
-                    : 'No disponible',
-                scale: scale,
-              ),
-              SizedBox(height: 10 * scale),
-              _DetailRow(
-                label: 'Rol',
-                value: 'ASSISTANT',
-                scale: scale,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cerrar'),
-            ),
-          ],
-        );
-      },
-    );
+        )
+        .then((shouldRefresh) {
+          if (shouldRefresh == true && mounted) {
+            _loadUsersForAudit();
+          }
+        });
   }
 
   @override
@@ -340,37 +305,6 @@ class _FeedbackCard extends StatelessWidget {
               fontSize: 13 * scale,
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({
-    required this.label,
-    required this.value,
-    required this.scale,
-  });
-
-  final String label;
-  final String value;
-  final double scale;
-
-  @override
-  Widget build(BuildContext context) {
-    return RichText(
-      text: TextSpan(
-        style: TextStyle(
-          color: Colors.black87,
-          fontSize: 14 * scale,
-        ),
-        children: [
-          TextSpan(
-            text: '$label: ',
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-          TextSpan(text: value),
         ],
       ),
     );
