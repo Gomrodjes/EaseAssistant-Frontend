@@ -1,13 +1,17 @@
 import 'package:ease_assistant_frontend/core/secure_storage.dart';
 import 'package:ease_assistant_frontend/models/models.dart';
+import 'package:ease_assistant_frontend/services/application_service.dart';
 import 'package:ease_assistant_frontend/services/auth_service.dart';
+import 'package:ease_assistant_frontend/services/user_service.dart';
+import 'package:ease_assistant_frontend/views/user/assistant/application/waiting_application_responde_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../config/app_colors.dart';
 import '../../config/measures.dart';
 import '../admin/admin_home_screen.dart';
-import '../user/assistant/assistant_home_screen.dart';
+import '../user/assistant/assistant_verified_home_screen.dart';
+import '../user/assistant/assistant_verify_home_screen copy.dart';
 import '../user/client/client_home_screen.dart';
 import 'register_screen.dart';
 
@@ -23,6 +27,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _authService = AuthService();
+  final _userService = UserService();
+  final _applicationService = ApplicationService();
 
   bool _isSubmitting = false;
 
@@ -35,6 +41,8 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _authService.dispose();
+    _userService.dispose();
+    _applicationService.dispose();
     super.dispose();
   }
 
@@ -67,16 +75,30 @@ class _LoginScreenState extends State<LoginScreen> {
 
       await SecureStorage.saveToken(token);
       final role = SecureStorage.getRoleFromToken(token);
+      final email = SecureStorage.getEmailFromToken(token);
+      final user = await _getAuthenticatedUser(email);
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Inicio de sesion correcto. Rol detectado: $role'),
-        ),
-      );
+      if (user == null) {
+        throw const AuthException(
+          'No se pudo obtener la informacion del usuario autenticado.',
+        );
+      }
 
-      final destination = _screenForRole(role);
+      if (!user.isActive) {
+        await SecureStorage.deleteToken();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Se ha desactivado tu cuenta contacta con soporte para saber el motivo.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      final destination = await _screenForUser(role, user);
       if (destination == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -90,11 +112,13 @@ class _LoginScreenState extends State<LoginScreen> {
         MaterialPageRoute<void>(builder: (_) => destination),
       );
     } on AuthException catch (e) {
+      await SecureStorage.deleteToken();
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(e.message)));
     } catch (_) {
+      await SecureStorage.deleteToken();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -110,14 +134,38 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Widget? _screenForRole(String role) {
+  Future<UserResponseDto?> _getAuthenticatedUser(String email) async {
+    final response = await _userService.getAllUsers();
+
+    for (final user in response.data ?? <UserResponseDto>[]) {
+      if (user.email.trim().toLowerCase() == email.trim().toLowerCase()) {
+        return user;
+      }
+    }
+
+    return null;
+  }
+
+  Future<Widget?> _screenForUser(String role, UserResponseDto user) async {
     switch (role.trim().toUpperCase()) {
       case 'ROLE_CLIENT':
       case 'CLIENT':
         return const ClientHomeScreen();
       case 'ROLE_ASSISTANT':
       case 'ASSISTANT':
-        return const AssistantHomeScreen();
+        final applicationsResponse = await _applicationService.getAllApplications();
+        final hasApplication = (applicationsResponse.data ?? <ApplicationResponseDto>[])
+            .any((application) => application.userId == user.id);
+
+        if (!hasApplication) {
+          return const AssistantVerifyHomeScreen();
+        }
+
+        if (!user.documentationVerified) {
+          return const WaitingApplicationRespondeScreen();
+        }
+
+        return const AssistantVerifiedHomeScreen();
       case 'ROLE_ADMIN':
       case 'ADMIN':
         return const AdminHomeScreen();

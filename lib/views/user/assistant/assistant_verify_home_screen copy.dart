@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../config/app_colors.dart';
 
-class AssistantHomeScreen extends StatelessWidget {
-  const AssistantHomeScreen({super.key});
+class AssistantVerifyHomeScreen extends StatelessWidget {
+  const AssistantVerifyHomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +30,7 @@ class AssistantHomeScreen extends StatelessWidget {
               ),
               SizedBox(height: 12),
               Text(
-                'Has iniciado sesion como asistente.',
+                'Aplica para poder ser un trabajador.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16,
