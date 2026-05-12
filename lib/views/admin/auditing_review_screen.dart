@@ -238,16 +238,26 @@ class _AuditingReviewScreenState extends State<AuditingReviewScreen> {
 
   String _documentTypeLabel(DocumentationResponseDto documentation) {
     switch (documentation.type) {
-      case TypeDocument.dni:
+      case TypeDocument.dniFront:
+        return 'Foto DNI delantera';
+      case TypeDocument.dniBack:
+        return 'Foto DNI trasera';
+      case TypeDocument.selfie:
+        return 'Foto de camara';
       case TypeDocument.passport:
-        return 'Fotos de identificacion';
+        return 'Pasaporte';
       case TypeDocument.backgroundCheckCertificate:
-        return 'Certificado de antecedente';
+        return 'Certificado de antecedentes penales';
+      case TypeDocument.socialSecurityDocument:
+        return 'Documento de la Seguridad Social';
+      case TypeDocument.trainingCertificate:
+        return 'Certificados de formacion';
       case TypeDocument.reta:
-        return 'Numero Seguridad Social';
+        return 'Documento RETA';
       case TypeDocument.other:
-        return 'Certificado de formacion';
+        return 'Otro documento';
       case null:
+      default:
         return documentation.originalFileName.isNotEmpty
             ? documentation.originalFileName
             : 'Documento';

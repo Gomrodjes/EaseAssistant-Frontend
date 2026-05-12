@@ -75,6 +75,29 @@ class ApplicationService {
     );
   }
 
+  Future<ApiResponse<ApplicationResponseDto>> createApplication(
+    ApplicationSaveDto request,
+  ) async {
+    final authToken = await SecureStorage.getToken();
+    final response = await _client.post(
+      _buildUri('/applications/create'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        if (authToken != null && authToken.isNotEmpty)
+          'Authorization': 'Bearer $authToken',
+      },
+      body: jsonEncode(request.toJson()),
+    );
+
+    return _parseResponse<ApplicationResponseDto>(
+      response,
+      (data) => ApplicationResponseDto.fromJson(
+        Map<String, dynamic>.from(data as Map),
+      ),
+    );
+  }
+
   Future<ApiResponse<ApplicationResponseDto>> denyApplication(
     int applicationId,
     ApplicationReviewDto request,

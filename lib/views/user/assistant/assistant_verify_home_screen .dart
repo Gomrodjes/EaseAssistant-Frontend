@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../config/app_colors.dart';
 import '../../../config/measures.dart';
+import 'application/assistant_identity_verification_screen.dart';
 
 class AssistantVerifyHomeScreen extends StatelessWidget {
   const AssistantVerifyHomeScreen({super.key});
@@ -96,7 +97,14 @@ class AssistantVerifyHomeScreen extends StatelessWidget {
                   width: double.infinity,
                   height: 58 * scale,
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) =>
+                              const AssistantIdentityVerificationScreen(),
+                        ),
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.turquoise,
                       foregroundColor: Colors.white,

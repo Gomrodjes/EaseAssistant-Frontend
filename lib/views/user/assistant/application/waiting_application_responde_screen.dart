@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../config/app_colors.dart';
 import '../../../../config/measures.dart';
+import '../../../../core/secure_storage.dart';
+import '../../../auth/login_screen.dart';
 
 class WaitingApplicationRespondeScreen extends StatelessWidget {
   const WaitingApplicationRespondeScreen({super.key});
@@ -74,7 +76,7 @@ class WaitingApplicationRespondeScreen extends StatelessWidget {
                 Container(
                   width: 176 * scale,
                   height: 2,
-                  color: AppColors.turquoise.withValues(alpha: 0.45),
+                  color: AppColors.turquoise.withOpacity(0.45),
                 ),
                 SizedBox(height: 42 * scale),
                 Center(
@@ -88,6 +90,38 @@ class WaitingApplicationRespondeScreen extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 24 * scale),
+                SizedBox(
+                  width: double.infinity,
+                  height: 54 * scale,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      await SecureStorage.deleteToken();
+                      if (!context.mounted) return;
+
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const LoginScreen(),
+                        ),
+                        (_) => false,
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.turquoise,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18 * scale),
+                      ),
+                    ),
+                    child: Text(
+                      'Salir',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16 * scale,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
