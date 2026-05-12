@@ -11,7 +11,7 @@ import '../../config/app_colors.dart';
 import '../../config/measures.dart';
 import '../admin/admin_home_screen.dart';
 import '../user/assistant/assistant_verified_home_screen.dart';
-import '../user/assistant/assistant_verify_home_screen copy.dart';
+import '../user/assistant/assistant_verify_home_screen .dart';
 import '../user/client/client_home_screen.dart';
 import 'register_screen.dart';
 
