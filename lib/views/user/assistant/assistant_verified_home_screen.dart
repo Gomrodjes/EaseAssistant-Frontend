@@ -473,8 +473,9 @@ class _CategoryFilterList extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     padding: EdgeInsets.all(10 * scale),
-                    child: SvgPicture.asset(
-                      _categoryAssetPathFromName(category.name),
+                    child: _SafeCategoryIcon(
+                      assetPath: _safeCategoryAssetPathFromName(category.name),
+                      scale: scale,
                       fit: BoxFit.contain,
                     ),
                   ),
@@ -568,8 +569,9 @@ class _BookingCard extends StatelessWidget {
             width: 56 * scale,
             child: Column(
               children: [
-                SvgPicture.asset(
-                  _categoryAssetPathFromName(categoryName),
+                _SafeCategoryIcon(
+                  assetPath: _safeCategoryAssetPathFromName(categoryName),
+                  scale: scale,
                   width: 28 * scale,
                   height: 28 * scale,
                   fit: BoxFit.contain,
@@ -716,15 +718,90 @@ class _InfoMessageCard extends StatelessWidget {
   }
 }
 
-String _categoryAssetPathFromName(String categoryName) {
-  switch (categoryName.trim().toLowerCase()) {
+class _SafeCategoryIcon extends StatefulWidget {
+  const _SafeCategoryIcon({
+    required this.assetPath,
+    required this.scale,
+    this.width,
+    this.height,
+    this.fit = BoxFit.contain,
+  });
+
+  final String assetPath;
+  final double scale;
+  final double? width;
+  final double? height;
+  final BoxFit fit;
+
+  @override
+  State<_SafeCategoryIcon> createState() => _SafeCategoryIconState();
+}
+
+class _SafeCategoryIconState extends State<_SafeCategoryIcon> {
+  bool _assetExists = true;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _checkAsset();
+  }
+
+  @override
+  void didUpdateWidget(covariant _SafeCategoryIcon oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.assetPath != widget.assetPath) {
+      _checkAsset();
+    }
+  }
+
+  Future<void> _checkAsset() async {
+    try {
+      await DefaultAssetBundle.of(context).loadString(widget.assetPath);
+      if (!mounted) return;
+      setState(() {
+        _assetExists = true;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _assetExists = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_assetExists) {
+      return Icon(
+        Icons.miscellaneous_services_outlined,
+        color: AppColors.navyBlue,
+        size: widget.width ?? widget.height ?? (28 * widget.scale),
+      );
+    }
+
+    return SvgPicture.asset(
+      widget.assetPath,
+      width: widget.width,
+      height: widget.height,
+      fit: widget.fit,
+    );
+  }
+}
+
+String _safeCategoryAssetPathFromName(String categoryName) {
+  final normalizedCategoryName = categoryName
+      .trim()
+      .toLowerCase()
+      .replaceAll('ñ', 'n')
+      .replaceAll('Ã±', 'n');
+
+  switch (normalizedCategoryName) {
     case 'limpieza':
       return 'assets/images/categories/limpieza.svg';
     case 'cocina':
       return 'assets/images/categories/cocina.svg';
-    case 'compañia':
     case 'compania':
-      return 'assets/images/categories/compañia.svg';
+      return 'assets/images/categories/compania.svg';
     case 'cuidado personal':
       return 'assets/images/categories/cuidado_personal.svg';
     case 'tecnologia':
