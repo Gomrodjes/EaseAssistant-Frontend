@@ -53,6 +53,31 @@ class UserServiceAssignmentService {
     );
   }
 
+  Future<ApiResponse<List<UserServiceAssignmentResponseDto>>>
+      getAssignmentsByService(int serviceId) async {
+    final authToken = await SecureStorage.getToken();
+    final response = await _client.get(
+      _buildUri('/assignments/service/$serviceId'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        if (authToken != null && authToken.isNotEmpty)
+          'Authorization': 'Bearer $authToken',
+      },
+    );
+
+    return _parseResponse<List<UserServiceAssignmentResponseDto>>(
+      response,
+      (data) => (data as List<dynamic>)
+          .map(
+            (item) => UserServiceAssignmentResponseDto.fromJson(
+              Map<String, dynamic>.from(item as Map),
+            ),
+          )
+          .toList(),
+    );
+  }
+
   ApiResponse<T> _parseResponse<T>(
     http.Response response,
     T Function(dynamic data) parser,

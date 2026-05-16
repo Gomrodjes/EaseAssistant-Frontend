@@ -60,6 +60,8 @@ class UserResponseDto {
   final bool isActive;
   final bool isVerified;
   final bool documentationVerified;
+  final int numberOfReviews;
+  final double averageRating;
 
   const UserResponseDto({
     this.id,
@@ -74,6 +76,8 @@ class UserResponseDto {
     required this.isActive,
     required this.isVerified,
     required this.documentationVerified,
+    required this.numberOfReviews,
+    required this.averageRating,
   });
 
   factory UserResponseDto.fromJson(Map<String, dynamic> json) {
@@ -91,6 +95,8 @@ class UserResponseDto {
       isVerified: JsonUtils.asBool(json['verified'] ?? json['isVerified']) ?? false,
       documentationVerified:
           JsonUtils.asBool(json['documentationVerified']) ?? false,
+      numberOfReviews: JsonUtils.asInt(json['numberOfReviews']) ?? 0,
+      averageRating: JsonUtils.asDouble(json['averageRating']) ?? 0,
     );
   }
 
@@ -107,6 +113,8 @@ class UserResponseDto {
         'isActive': isActive,
         'isVerified': isVerified,
         'documentationVerified': documentationVerified,
+        'numberOfReviews': numberOfReviews,
+        'averageRating': averageRating,
       };
 }
 

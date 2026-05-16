@@ -110,6 +110,8 @@ class _UserStatusScreenState extends State<UserStatusScreen> {
       isActive: isActive,
       isVerified: _user.isVerified,
       documentationVerified: _user.documentationVerified,
+      numberOfReviews: _user.numberOfReviews,
+      averageRating: _user.averageRating,
     );
   }
 
