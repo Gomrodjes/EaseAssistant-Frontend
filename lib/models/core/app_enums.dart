@@ -6,7 +6,17 @@ enum StateBooking { completed, inProgress, canceled, waiting }
 
 enum StatePayment { pending, paid, failed, refunded }
 
-enum TypeDocument { dni, passport, backgroundCheckCertificate, reta, other }
+enum TypeDocument {
+  dniFront,
+  dniBack,
+  selfie,
+  passport,
+  backgroundCheckCertificate,
+  socialSecurityDocument,
+  trainingCertificate,
+  reta,
+  other,
+}
 
 enum UserRole { client, assistant, admin }
 
@@ -127,12 +137,21 @@ class EnumMapper {
 
   static TypeDocument? typeDocumentFromJson(String? value) {
     switch (value) {
-      case 'DNI':
-        return TypeDocument.dni;
+      case 'DNI_FRONT':
+        return TypeDocument.dniFront;
+      case 'DNI_BACK':
+        return TypeDocument.dniBack;
+      case 'SELFIE':
+        return TypeDocument.selfie;
       case 'PASSPORT':
         return TypeDocument.passport;
+      case 'BACKGROUND_CHECK_CERTIFICATE':
       case 'BACKGOUND_CHECK_CERTIFICATE':
         return TypeDocument.backgroundCheckCertificate;
+      case 'SOCIAL_SECURITY_DOCUMENT':
+        return TypeDocument.socialSecurityDocument;
+      case 'TRAINING_CERTIFICATE':
+        return TypeDocument.trainingCertificate;
       case 'RETA':
         return TypeDocument.reta;
       case 'OTHER':
@@ -144,12 +163,20 @@ class EnumMapper {
 
   static String? typeDocumentToJson(TypeDocument? value) {
     switch (value) {
-      case TypeDocument.dni:
-        return 'DNI';
+      case TypeDocument.dniFront:
+        return 'DNI_FRONT';
+      case TypeDocument.dniBack:
+        return 'DNI_BACK';
+      case TypeDocument.selfie:
+        return 'SELFIE';
       case TypeDocument.passport:
         return 'PASSPORT';
       case TypeDocument.backgroundCheckCertificate:
-        return 'BACKGOUND_CHECK_CERTIFICATE';
+        return 'BACKGROUND_CHECK_CERTIFICATE';
+      case TypeDocument.socialSecurityDocument:
+        return 'SOCIAL_SECURITY_DOCUMENT';
+      case TypeDocument.trainingCertificate:
+        return 'TRAINING_CERTIFICATE';
       case TypeDocument.reta:
         return 'RETA';
       case TypeDocument.other:

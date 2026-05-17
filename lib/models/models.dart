@@ -9,5 +9,6 @@ export 'documentation_models.dart';
 export 'job_models.dart';
 export 'payment_models.dart';
 export 'rating_models.dart';
+export 'service_booking_flow_models.dart';
 export 'user_models.dart';
 export 'user_service_assignment_models.dart';

@@ -6,17 +6,17 @@ import '../config/app_config.dart';
 import '../core/secure_storage.dart';
 import '../models/models.dart';
 
-class AddressException implements Exception {
+class BookingServiceException implements Exception {
   final String message;
 
-  const AddressException(this.message);
+  const BookingServiceException(this.message);
 
   @override
   String toString() => message;
 }
 
-class AddressService {
-  AddressService({
+class BookingService {
+  BookingService({
     http.Client? client,
     String? baseUrl,
   })  : _client = client ?? http.Client(),
@@ -27,12 +27,34 @@ class AddressService {
 
   Uri _buildUri(String path) => Uri.parse('$_baseUrl$path');
 
-  Future<ApiResponse<List<AddressResponseDto>>> getAddressesByUser(
+  Future<ApiResponse<BookingResponseDto>> createBooking(
+    BookingSaveDto request,
+  ) async {
+    final authToken = await SecureStorage.getToken();
+    final response = await _client.post(
+      _buildUri('/bookings/create'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        if (authToken != null && authToken.isNotEmpty)
+          'Authorization': 'Bearer $authToken',
+      },
+      body: jsonEncode(request.toJson()),
+    );
+
+    return _parseResponse<BookingResponseDto>(
+      response,
+      (data) =>
+          BookingResponseDto.fromJson(Map<String, dynamic>.from(data as Map)),
+    );
+  }
+
+  Future<ApiResponse<List<BookingResponseDto>>> getBookingsByUser(
     int userId,
   ) async {
     final authToken = await SecureStorage.getToken();
     final response = await _client.get(
-      _buildUri('/addresses/$userId'),
+      _buildUri('/bookings/user/$userId'),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -41,38 +63,15 @@ class AddressService {
       },
     );
 
-    return _parseResponse<List<AddressResponseDto>>(
+    return _parseResponse<List<BookingResponseDto>>(
       response,
       (data) => (data as List<dynamic>)
           .map(
-            (item) => AddressResponseDto.fromJson(
+            (item) => BookingResponseDto.fromJson(
               Map<String, dynamic>.from(item as Map),
             ),
           )
           .toList(),
-    );
-  }
-
-  Future<ApiResponse<AddressResponseDto>> createAddress(
-    AddressSaveDto request,
-    {String? authToken}
-  ) async {
-    final resolvedAuthToken = authToken ?? await SecureStorage.getToken();
-    final response = await _client.post(
-      _buildUri('/addresses/create'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        if (resolvedAuthToken != null && resolvedAuthToken.isNotEmpty)
-          'Authorization': 'Bearer $resolvedAuthToken',
-      },
-      body: jsonEncode(request.toJson()),
-    );
-
-    return _parseResponse<AddressResponseDto>(
-      response,
-      (data) =>
-          AddressResponseDto.fromJson(Map<String, dynamic>.from(data as Map)),
     );
   }
 
@@ -87,7 +86,7 @@ class AddressService {
       return apiResponse;
     }
 
-    throw AddressException(
+    throw BookingServiceException(
       apiResponse.message.isNotEmpty
           ? apiResponse.message
           : 'Request failed with status ${response.statusCode}',

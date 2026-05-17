@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
@@ -29,6 +30,37 @@ class DocumentationService {
 
   Uri getDocumentationFileUri(int documentationId) {
     return _buildUri('/documentations/file/$documentationId');
+  }
+
+  Future<ApiResponse<DocumentationResponseDto>> createDocumentation({
+    required int userId,
+    required TypeDocument type,
+    required File file,
+  }) async {
+    final authToken = await SecureStorage.getToken();
+    final request = http.MultipartRequest(
+      'POST',
+      _buildUri('/documentations/create'),
+    );
+
+    request.fields['userId'] = '$userId';
+    request.fields['type'] = EnumMapper.typeDocumentToJson(type) ?? '';
+    request.files.add(await http.MultipartFile.fromPath('file', file.path));
+
+    if (authToken != null && authToken.isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $authToken';
+    }
+    request.headers['Accept'] = 'application/json';
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    return _parseResponse<DocumentationResponseDto>(
+      response,
+      (data) => DocumentationResponseDto.fromJson(
+        Map<String, dynamic>.from(data as Map),
+      ),
+    );
   }
 
   Future<ApiResponse<List<DocumentationResponseDto>>> getAllDocumentationByUser(

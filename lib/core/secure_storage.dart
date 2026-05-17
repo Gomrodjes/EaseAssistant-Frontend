@@ -23,4 +23,9 @@ class SecureStorage {
     Map<String, dynamic> decoded = JwtDecoder.decode(token);
     return decoded['role'];
   }
+
+  static String getEmailFromToken(String token) {
+    Map<String, dynamic> decoded = JwtDecoder.decode(token);
+    return decoded['sub']?.toString() ?? '';
+  }
 }

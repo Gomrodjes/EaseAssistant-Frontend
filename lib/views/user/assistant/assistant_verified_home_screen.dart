@@ -5,29 +5,41 @@ import '../../../config/app_colors.dart';
 import '../../../config/measures.dart';
 import '../../../core/secure_storage.dart';
 import '../../../models/booking_models.dart';
+import '../../../models/category_models.dart';
 import '../../../models/core/app_enums.dart';
 import '../../../models/user_models.dart';
+import '../../../models/user_service_assignment_models.dart';
 import '../../../services/booking_service.dart';
+import '../../../services/category_service.dart';
 import '../../../services/user_service.dart';
-import 'buy_service.dart';
+import '../../../services/user_service_assignment_service.dart';
 import '../profile.dart';
 
-class ClientHomeScreen extends StatefulWidget {
-  const ClientHomeScreen({super.key});
+class AssistantVerifiedHomeScreen extends StatefulWidget {
+  const AssistantVerifiedHomeScreen({super.key});
 
   @override
-  State<ClientHomeScreen> createState() => _ClientHomeScreenState();
+  State<AssistantVerifiedHomeScreen> createState() =>
+      _AssistantVerifiedHomeScreenState();
 }
 
-class _ClientHomeScreenState extends State<ClientHomeScreen> {
+class _AssistantVerifiedHomeScreenState
+    extends State<AssistantVerifiedHomeScreen> {
   final UserService _userService = UserService();
+  final CategoryService _categoryService = CategoryService();
   final BookingService _bookingService = BookingService();
+  final UserServiceAssignmentService _assignmentService =
+      UserServiceAssignmentService();
 
   bool _isLoading = true;
   String? _errorMessage;
 
   UserResponseDto? _currentUser;
+  List<CategoryResponseDto> _categories = const <CategoryResponseDto>[];
   List<BookingResponseDto> _bookings = const <BookingResponseDto>[];
+  List<UserServiceAssignmentResponseDto> _assignments =
+      const <UserServiceAssignmentResponseDto>[];
+  String? _selectedCategoryName;
 
   @override
   void initState() {
@@ -38,7 +50,9 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
   @override
   void dispose() {
     _userService.dispose();
+    _categoryService.dispose();
     _bookingService.dispose();
+    _assignmentService.dispose();
     super.dispose();
   }
 
@@ -72,9 +86,21 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
         );
       }
 
-      final bookingsResponse = await _bookingService.getBookingsByUser(
-        currentUser.id!,
+      final userId = currentUser.id!;
+      final categoriesResponse = await _categoryService.getAllCategories();
+      final bookingsResponse = await _bookingService.getBookingsByUser(userId);
+      final assignmentsResponse = await _assignmentService.getAssignmentsByUser(
+        userId,
       );
+
+      final categories = (categoriesResponse.data ?? <CategoryResponseDto>[])
+          .where((category) => category.active && category.name.trim().isNotEmpty)
+          .toList()
+        ..sort(
+          (first, second) => first.name.toLowerCase().compareTo(
+                second.name.toLowerCase(),
+              ),
+        );
 
       final bookings = (bookingsResponse.data ?? <BookingResponseDto>[])
           .where((booking) => booking.state != StateBooking.canceled)
@@ -89,14 +115,27 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
           return (first.startTime ?? '').compareTo(second.startTime ?? '');
         });
 
+      final assignments =
+          (assignmentsResponse.data ?? <UserServiceAssignmentResponseDto>[])
+              .where((assignment) => assignment.active)
+              .toList();
+
       if (!mounted) return;
 
       setState(() {
         _currentUser = currentUser;
+        _categories = categories;
         _bookings = bookings;
+        _assignments = assignments;
         _isLoading = false;
       });
     } on UserServiceException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = e.message;
+        _isLoading = false;
+      });
+    } on CategoryServiceException catch (e) {
       if (!mounted) return;
       setState(() {
         _errorMessage = e.message;
@@ -108,13 +147,68 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
         _errorMessage = e.message;
         _isLoading = false;
       });
+    } on UserServiceAssignmentServiceException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = e.message;
+        _isLoading = false;
+      });
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'No se pudo cargar la pantalla del cliente.';
+        _errorMessage = 'No se pudo cargar la pantalla del asistente.';
         _isLoading = false;
       });
     }
+  }
+
+  List<CategoryResponseDto> get _visibleCategories {
+    if (_assignments.isEmpty) {
+      return _categories;
+    }
+
+    final assignedServiceNames = _assignments
+        .map((assignment) => _normalizeText(assignment.serviceName))
+        .toSet();
+
+    return _categories.where((category) {
+      return category.serviceNames
+          .map(_normalizeText)
+          .any(assignedServiceNames.contains);
+    }).toList();
+  }
+
+  List<BookingResponseDto> get _filteredBookings {
+    if (_selectedCategoryName == null) {
+      return _bookings;
+    }
+
+    CategoryResponseDto? selectedCategory;
+    for (final category in _categories) {
+      if (category.name.toLowerCase() == _selectedCategoryName!.toLowerCase()) {
+        selectedCategory = category;
+        break;
+      }
+    }
+
+    if (selectedCategory == null) {
+      return _bookings;
+    }
+
+    final selectedServiceNames = selectedCategory.serviceNames
+        .map(_normalizeText)
+        .toSet();
+
+    final hasAssignedServiceInCategory = _assignments.any(
+      (assignment) =>
+          selectedServiceNames.contains(_normalizeText(assignment.serviceName)),
+    );
+
+    if (!hasAssignedServiceInCategory) {
+      return const <BookingResponseDto>[];
+    }
+
+    return _bookings;
   }
 
   @override
@@ -131,44 +225,6 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
           color: AppColors.turquoise,
           onRefresh: _loadData,
           child: _buildBody(context, scale, userName),
-        ),
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            28 * scale,
-            10 * scale,
-            28 * scale,
-            18 * scale,
-          ),
-          child: SizedBox(
-            height: 52 * scale,
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const BuyServiceScreen(),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.turquoise,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24 * scale),
-                ),
-              ),
-              child: Text(
-                'Contratar ayuda',
-                style: TextStyle(
-                  fontSize: 20 * scale,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
         ),
       ),
     );
@@ -197,6 +253,9 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
       );
     }
 
+    final visibleCategories = _visibleCategories;
+    final filteredBookings = _filteredBookings;
+
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(
         parent: BouncingScrollPhysics(),
@@ -205,7 +264,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
         20 * scale,
         16 * scale,
         20 * scale,
-        32 * scale,
+        28 * scale,
       ),
       children: [
         _TopProfileButton(
@@ -219,8 +278,8 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
         ),
         SizedBox(height: 14 * scale),
         SvgPicture.asset(
-          'assets/images/client_image_home.svg',
-          height: 250 * scale,
+          'assets/images/assistant_image_home-1.svg',
+          height: 230 * scale,
           fit: BoxFit.contain,
         ),
         SizedBox(height: 6 * scale),
@@ -234,6 +293,19 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
           ),
         ),
         SizedBox(height: 18 * scale),
+        if (visibleCategories.isNotEmpty)
+          _CategoryFilterList(
+            categories: visibleCategories,
+            selectedCategoryName: _selectedCategoryName,
+            scale: scale,
+            onSelected: (categoryName) {
+              setState(() {
+                _selectedCategoryName =
+                    _selectedCategoryName == categoryName ? null : categoryName;
+              });
+            },
+          ),
+        SizedBox(height: 20 * scale),
         Text(
           'Servicios contratados para hoy',
           textAlign: TextAlign.center,
@@ -244,23 +316,36 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
           ),
         ),
         SizedBox(height: 16 * scale),
-        if (_bookings.isEmpty)
-          const _InfoMessageCard(
-            title: 'No hay reservas disponibles',
-            message: 'Cuando tengas reservas contratadas apareceran aqui.',
+        if (filteredBookings.isEmpty)
+          _InfoMessageCard(
+            title: _selectedCategoryName == null
+                ? 'No hay reservas disponibles'
+                : 'No hay reservas para esta categoria',
+            message: _selectedCategoryName == null
+                ? 'Cuando tengas reservas asociadas apareceran aqui.'
+                : 'Prueba con otra categoria o quita el filtro.',
           )
         else
-          ..._bookings.map(
+          ...filteredBookings.map(
             (booking) => Padding(
               padding: EdgeInsets.only(bottom: 14 * scale),
               child: _BookingCard(
                 booking: booking,
                 scale: scale,
+                categoryName: _selectedCategoryName ?? _categoryLabelFallback(),
               ),
             ),
           ),
       ],
     );
+  }
+
+  String _categoryLabelFallback() {
+    final visibleCategories = _visibleCategories;
+    if (visibleCategories.isNotEmpty) {
+      return visibleCategories.first.name;
+    }
+    return 'Limpieza';
   }
 
   String _firstName(String fullName) {
@@ -269,6 +354,19 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
       return 'Jesus';
     }
     return pieces.first;
+  }
+
+  String _normalizeText(String value) {
+    return value
+        .trim()
+        .toLowerCase()
+        .replaceAll('á', 'a')
+        .replaceAll('é', 'e')
+        .replaceAll('í', 'i')
+        .replaceAll('ó', 'o')
+        .replaceAll('ú', 'u')
+        .replaceAll('ñ', 'n')
+        .replaceAll('_', ' ');
   }
 }
 
@@ -332,14 +430,86 @@ class _TopProfileButton extends StatelessWidget {
   }
 }
 
+class _CategoryFilterList extends StatelessWidget {
+  const _CategoryFilterList({
+    required this.categories,
+    required this.selectedCategoryName,
+    required this.scale,
+    required this.onSelected,
+  });
+
+  final List<CategoryResponseDto> categories;
+  final String? selectedCategoryName;
+  final double scale;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 94 * scale,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: categories.length,
+        separatorBuilder: (_, __) => SizedBox(width: 14 * scale),
+        itemBuilder: (context, index) {
+          final category = categories[index];
+          final isSelected = selectedCategoryName?.toLowerCase() ==
+              category.name.toLowerCase();
+
+          return GestureDetector(
+            onTap: () => onSelected(category.name),
+            child: SizedBox(
+              width: 64 * scale,
+              child: Column(
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    width: 56 * scale,
+                    height: 56 * scale,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? const Color(0xFF8DB0D3)
+                          : Colors.transparent,
+                      shape: BoxShape.circle,
+                    ),
+                    padding: EdgeInsets.all(10 * scale),
+                    child: _SafeCategoryIcon(
+                      assetPath: _safeCategoryAssetPathFromName(category.name),
+                      scale: scale,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  SizedBox(height: 6 * scale),
+                  Text(
+                    category.name,
+                    maxLines: 2,
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 10 * scale,
+                      color: const Color(0xFF616161),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _BookingCard extends StatelessWidget {
   const _BookingCard({
     required this.booking,
     required this.scale,
+    required this.categoryName,
   });
 
   final BookingResponseDto booking;
   final double scale;
+  final String categoryName;
 
   @override
   Widget build(BuildContext context) {
@@ -390,6 +560,32 @@ class _BookingCard extends StatelessWidget {
                   icon: Icons.calendar_today_outlined,
                   text: _dateLabel(booking.dateBooking),
                   scale: scale,
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 10 * scale),
+          SizedBox(
+            width: 56 * scale,
+            child: Column(
+              children: [
+                _SafeCategoryIcon(
+                  assetPath: _safeCategoryAssetPathFromName(categoryName),
+                  scale: scale,
+                  width: 28 * scale,
+                  height: 28 * scale,
+                  fit: BoxFit.contain,
+                ),
+                SizedBox(height: 4 * scale),
+                Text(
+                  categoryName,
+                  maxLines: 2,
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 10 * scale,
+                    color: const Color(0xFF1B5A8A),
+                  ),
                 ),
               ],
             ),
@@ -519,5 +715,100 @@ class _InfoMessageCard extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _SafeCategoryIcon extends StatefulWidget {
+  const _SafeCategoryIcon({
+    required this.assetPath,
+    required this.scale,
+    this.width,
+    this.height,
+    this.fit = BoxFit.contain,
+  });
+
+  final String assetPath;
+  final double scale;
+  final double? width;
+  final double? height;
+  final BoxFit fit;
+
+  @override
+  State<_SafeCategoryIcon> createState() => _SafeCategoryIconState();
+}
+
+class _SafeCategoryIconState extends State<_SafeCategoryIcon> {
+  bool _assetExists = true;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _checkAsset();
+  }
+
+  @override
+  void didUpdateWidget(covariant _SafeCategoryIcon oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.assetPath != widget.assetPath) {
+      _checkAsset();
+    }
+  }
+
+  Future<void> _checkAsset() async {
+    try {
+      await DefaultAssetBundle.of(context).loadString(widget.assetPath);
+      if (!mounted) return;
+      setState(() {
+        _assetExists = true;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _assetExists = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_assetExists) {
+      return Icon(
+        Icons.miscellaneous_services_outlined,
+        color: AppColors.navyBlue,
+        size: widget.width ?? widget.height ?? (28 * widget.scale),
+      );
+    }
+
+    return SvgPicture.asset(
+      widget.assetPath,
+      width: widget.width,
+      height: widget.height,
+      fit: widget.fit,
+    );
+  }
+}
+
+String _safeCategoryAssetPathFromName(String categoryName) {
+  final normalizedCategoryName = categoryName
+      .trim()
+      .toLowerCase()
+      .replaceAll('ñ', 'n')
+      .replaceAll('Ã±', 'n');
+
+  switch (normalizedCategoryName) {
+    case 'limpieza':
+      return 'assets/images/categories/limpieza.svg';
+    case 'cocina':
+      return 'assets/images/categories/cocina.svg';
+    case 'compania':
+      return 'assets/images/categories/compania.svg';
+    case 'cuidado personal':
+      return 'assets/images/categories/cuidado_personal.svg';
+    case 'tecnologia':
+      return 'assets/images/categories/tecnologia.svg';
+    case 'transporte':
+      return 'assets/images/categories/transporte.svg';
+    default:
+      return 'assets/images/categories/limpieza.svg';
   }
 }

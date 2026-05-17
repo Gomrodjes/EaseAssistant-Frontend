@@ -5,7 +5,7 @@ class AppConfig {
 
   static const String baseUrlLocal = String.fromEnvironment(
     'API_BASE_URL_LOCAL',
-    defaultValue: 'http://localhost:8081',
+    defaultValue: 'http://localhost:8082',
   );
 
   static const String baseUrlHost = String.fromEnvironment(

@@ -4,19 +4,20 @@ import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
 import '../core/secure_storage.dart';
-import '../models/models.dart';
+import '../models/api/api_response.dart';
+import '../models/user_service_assignment_models.dart';
 
-class UserServiceException implements Exception {
+class UserServiceAssignmentServiceException implements Exception {
   final String message;
 
-  const UserServiceException(this.message);
+  const UserServiceAssignmentServiceException(this.message);
 
   @override
   String toString() => message;
 }
 
-class UserService {
-  UserService({
+class UserServiceAssignmentService {
+  UserServiceAssignmentService({
     http.Client? client,
     String? baseUrl,
   })  : _client = client ?? http.Client(),
@@ -27,10 +28,11 @@ class UserService {
 
   Uri _buildUri(String path) => Uri.parse('$_baseUrl$path');
 
-  Future<ApiResponse<List<UserResponseDto>>> getAllUsers() async {
+  Future<ApiResponse<List<UserServiceAssignmentResponseDto>>>
+      getAssignmentsByUser(int userId) async {
     final authToken = await SecureStorage.getToken();
     final response = await _client.get(
-      _buildUri('/users'),
+      _buildUri('/assignments/user/$userId'),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -39,43 +41,23 @@ class UserService {
       },
     );
 
-    return _parseResponse<List<UserResponseDto>>(
+    return _parseResponse<List<UserServiceAssignmentResponseDto>>(
       response,
       (data) => (data as List<dynamic>)
           .map(
-            (item) =>
-                UserResponseDto.fromJson(Map<String, dynamic>.from(item as Map)),
+            (item) => UserServiceAssignmentResponseDto.fromJson(
+              Map<String, dynamic>.from(item as Map),
+            ),
           )
           .toList(),
     );
   }
 
-  Future<ApiResponse<UserResponseDto>> updateUserRole(
-    int userId,
-    UserRoleUpdateDto request,
-  ) async {
-    final response = await _client.put(
-      _buildUri('/auth/select-account-type/$userId'),
-      headers: const {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode(request.toJson()),
-    );
-
-    return _parseResponse<UserResponseDto>(
-      response,
-      (data) => UserResponseDto.fromJson(Map<String, dynamic>.from(data as Map)),
-    );
-  }
-
-  Future<ApiResponse<UserResponseDto>> updateUserActiveStatus(
-    int userId,
-    bool isActive,
-  ) async {
+  Future<ApiResponse<List<UserServiceAssignmentResponseDto>>>
+      getAssignmentsByService(int serviceId) async {
     final authToken = await SecureStorage.getToken();
-    final response = await _client.put(
-      _buildUri('/users/$userId/active/$isActive'),
+    final response = await _client.get(
+      _buildUri('/assignments/service/$serviceId'),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -84,16 +66,25 @@ class UserService {
       },
     );
 
-    return _parseResponse<UserResponseDto>(
+    return _parseResponse<List<UserServiceAssignmentResponseDto>>(
       response,
-      (data) => UserResponseDto.fromJson(Map<String, dynamic>.from(data as Map)),
+      (data) => (data as List<dynamic>)
+          .map(
+            (item) => UserServiceAssignmentResponseDto.fromJson(
+              Map<String, dynamic>.from(item as Map),
+            ),
+          )
+          .toList(),
     );
   }
 
-  Future<ApiResponse<void>> deleteUser(int userId) async {
+  Future<ApiResponse<UserServiceAssignmentResponseDto>> activateAssignment({
+    required int userId,
+    required int categoryId,
+  }) async {
     final authToken = await SecureStorage.getToken();
-    final response = await _client.delete(
-      _buildUri('/users/delete/$userId'),
+    final response = await _client.put(
+      _buildUri('/assignments/user/$userId/service/$categoryId/activate'),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -102,7 +93,12 @@ class UserService {
       },
     );
 
-    return _parseResponse<void>(response, (_) {});
+    return _parseResponse<UserServiceAssignmentResponseDto>(
+      response,
+      (data) => UserServiceAssignmentResponseDto.fromJson(
+        Map<String, dynamic>.from(data as Map),
+      ),
+    );
   }
 
   ApiResponse<T> _parseResponse<T>(
@@ -116,7 +112,7 @@ class UserService {
       return apiResponse;
     }
 
-    throw UserServiceException(
+    throw UserServiceAssignmentServiceException(
       apiResponse.message.isNotEmpty
           ? apiResponse.message
           : 'Request failed with status ${response.statusCode}',
