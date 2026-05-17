@@ -5,11 +5,9 @@ import '../../../config/app_colors.dart';
 import '../../../config/measures.dart';
 import '../../../core/secure_storage.dart';
 import '../../../models/booking_models.dart';
-import '../../../models/category_models.dart';
 import '../../../models/core/app_enums.dart';
 import '../../../models/user_models.dart';
 import '../../../services/booking_service.dart';
-import '../../../services/category_service.dart';
 import '../../../services/user_service.dart';
 import 'buy_service.dart';
 import '../profile.dart';
@@ -23,16 +21,13 @@ class ClientHomeScreen extends StatefulWidget {
 
 class _ClientHomeScreenState extends State<ClientHomeScreen> {
   final UserService _userService = UserService();
-  final CategoryService _categoryService = CategoryService();
   final BookingService _bookingService = BookingService();
 
   bool _isLoading = true;
   String? _errorMessage;
 
   UserResponseDto? _currentUser;
-  List<CategoryResponseDto> _categories = const <CategoryResponseDto>[];
   List<BookingResponseDto> _bookings = const <BookingResponseDto>[];
-  String? _selectedCategoryName;
 
   @override
   void initState() {
@@ -43,7 +38,6 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
   @override
   void dispose() {
     _userService.dispose();
-    _categoryService.dispose();
     _bookingService.dispose();
     super.dispose();
   }
@@ -78,19 +72,9 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
         );
       }
 
-      final categoriesResponse = await _categoryService.getAllCategories();
       final bookingsResponse = await _bookingService.getBookingsByUser(
         currentUser.id!,
       );
-
-      final categories = (categoriesResponse.data ?? <CategoryResponseDto>[])
-          .where((category) => category.active && category.name.trim().isNotEmpty)
-          .toList()
-        ..sort(
-          (first, second) => first.name.toLowerCase().compareTo(
-                second.name.toLowerCase(),
-              ),
-        );
 
       final bookings = (bookingsResponse.data ?? <BookingResponseDto>[])
           .where((booking) => booking.state != StateBooking.canceled)
@@ -109,17 +93,10 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
 
       setState(() {
         _currentUser = currentUser;
-        _categories = categories;
         _bookings = bookings;
         _isLoading = false;
       });
     } on UserServiceException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = e.message;
-        _isLoading = false;
-      });
-    } on CategoryServiceException catch (e) {
       if (!mounted) return;
       setState(() {
         _errorMessage = e.message;
@@ -139,10 +116,6 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
       });
     }
   }
-
-  List<CategoryResponseDto> get _visibleCategories => _categories;
-
-  List<BookingResponseDto> get _filteredBookings => _bookings;
 
   @override
   Widget build(BuildContext context) {
@@ -224,9 +197,6 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
       );
     }
 
-    final visibleCategories = _visibleCategories;
-    final filteredBookings = _filteredBookings;
-
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(
         parent: BouncingScrollPhysics(),
@@ -264,19 +234,6 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
           ),
         ),
         SizedBox(height: 18 * scale),
-        if (visibleCategories.isNotEmpty)
-          _CategoryFilterList(
-            categories: visibleCategories,
-            selectedCategoryName: _selectedCategoryName,
-            scale: scale,
-            onSelected: (categoryName) {
-              setState(() {
-                _selectedCategoryName =
-                    _selectedCategoryName == categoryName ? null : categoryName;
-              });
-            },
-          ),
-        SizedBox(height: 20 * scale),
         Text(
           'Servicios contratados para hoy',
           textAlign: TextAlign.center,
@@ -287,31 +244,23 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
           ),
         ),
         SizedBox(height: 16 * scale),
-        if (filteredBookings.isEmpty)
+        if (_bookings.isEmpty)
           const _InfoMessageCard(
             title: 'No hay reservas disponibles',
             message: 'Cuando tengas reservas contratadas apareceran aqui.',
           )
         else
-          ...filteredBookings.map(
+          ..._bookings.map(
             (booking) => Padding(
               padding: EdgeInsets.only(bottom: 14 * scale),
               child: _BookingCard(
                 booking: booking,
                 scale: scale,
-                categoryName: _selectedCategoryName ?? _categoryLabelFallback(),
               ),
             ),
           ),
       ],
     );
-  }
-
-  String _categoryLabelFallback() {
-    if (_visibleCategories.isNotEmpty) {
-      return _visibleCategories.first.name;
-    }
-    return 'Limpieza';
   }
 
   String _firstName(String fullName) {
@@ -383,86 +332,14 @@ class _TopProfileButton extends StatelessWidget {
   }
 }
 
-class _CategoryFilterList extends StatelessWidget {
-  const _CategoryFilterList({
-    required this.categories,
-    required this.selectedCategoryName,
-    required this.scale,
-    required this.onSelected,
-  });
-
-  final List<CategoryResponseDto> categories;
-  final String? selectedCategoryName;
-  final double scale;
-  final ValueChanged<String> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 94 * scale,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: categories.length,
-        separatorBuilder: (_, __) => SizedBox(width: 14 * scale),
-        itemBuilder: (context, index) {
-          final category = categories[index];
-          final isSelected = selectedCategoryName?.toLowerCase() ==
-              category.name.toLowerCase();
-
-          return GestureDetector(
-            onTap: () => onSelected(category.name),
-            child: SizedBox(
-              width: 64 * scale,
-              child: Column(
-                children: [
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    width: 56 * scale,
-                    height: 56 * scale,
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? const Color(0xFF8DB0D3)
-                          : Colors.transparent,
-                      shape: BoxShape.circle,
-                    ),
-                    padding: EdgeInsets.all(10 * scale),
-                    child: _SafeCategoryIcon(
-                      assetPath: _safeCategoryAssetPathFromName(category.name),
-                      scale: scale,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                  SizedBox(height: 6 * scale),
-                  Text(
-                    category.name,
-                    maxLines: 2,
-                    textAlign: TextAlign.center,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 10 * scale,
-                      color: const Color(0xFF616161),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
 class _BookingCard extends StatelessWidget {
   const _BookingCard({
     required this.booking,
     required this.scale,
-    required this.categoryName,
   });
 
   final BookingResponseDto booking;
   final double scale;
-  final String categoryName;
 
   @override
   Widget build(BuildContext context) {
@@ -513,32 +390,6 @@ class _BookingCard extends StatelessWidget {
                   icon: Icons.calendar_today_outlined,
                   text: _dateLabel(booking.dateBooking),
                   scale: scale,
-                ),
-              ],
-            ),
-          ),
-          SizedBox(width: 10 * scale),
-          SizedBox(
-            width: 56 * scale,
-            child: Column(
-              children: [
-                _SafeCategoryIcon(
-                  assetPath: _safeCategoryAssetPathFromName(categoryName),
-                  scale: scale,
-                  width: 28 * scale,
-                  height: 28 * scale,
-                  fit: BoxFit.contain,
-                ),
-                SizedBox(height: 4 * scale),
-                Text(
-                  categoryName,
-                  maxLines: 2,
-                  textAlign: TextAlign.center,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 10 * scale,
-                    color: const Color(0xFF1B5A8A),
-                  ),
                 ),
               ],
             ),
@@ -668,100 +519,5 @@ class _InfoMessageCard extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-class _SafeCategoryIcon extends StatefulWidget {
-  const _SafeCategoryIcon({
-    required this.assetPath,
-    required this.scale,
-    this.width,
-    this.height,
-    this.fit = BoxFit.contain,
-  });
-
-  final String assetPath;
-  final double scale;
-  final double? width;
-  final double? height;
-  final BoxFit fit;
-
-  @override
-  State<_SafeCategoryIcon> createState() => _SafeCategoryIconState();
-}
-
-class _SafeCategoryIconState extends State<_SafeCategoryIcon> {
-  bool _assetExists = true;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _checkAsset();
-  }
-
-  @override
-  void didUpdateWidget(covariant _SafeCategoryIcon oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.assetPath != widget.assetPath) {
-      _checkAsset();
-    }
-  }
-
-  Future<void> _checkAsset() async {
-    try {
-      await DefaultAssetBundle.of(context).loadString(widget.assetPath);
-      if (!mounted) return;
-      setState(() {
-        _assetExists = true;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _assetExists = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!_assetExists) {
-      return Icon(
-        Icons.miscellaneous_services_outlined,
-        color: AppColors.navyBlue,
-        size: widget.width ?? widget.height ?? (28 * widget.scale),
-      );
-    }
-
-    return SvgPicture.asset(
-      widget.assetPath,
-      width: widget.width,
-      height: widget.height,
-      fit: widget.fit,
-    );
-  }
-}
-
-String _safeCategoryAssetPathFromName(String categoryName) {
-  final normalizedCategoryName = categoryName
-      .trim()
-      .toLowerCase()
-      .replaceAll('Ã±', 'n')
-      .replaceAll('ÃƒÂ±', 'n');
-
-  switch (normalizedCategoryName) {
-    case 'limpieza':
-      return 'assets/images/categories/limpieza.svg';
-    case 'cocina':
-      return 'assets/images/categories/cocina.svg';
-    case 'compania':
-      return 'assets/images/categories/compania.svg';
-    case 'cuidado personal':
-      return 'assets/images/categories/cuidado_personal.svg';
-    case 'tecnologia':
-      return 'assets/images/categories/tecnologia.svg';
-    case 'transporte':
-      return 'assets/images/categories/transporte.svg';
-    default:
-      return 'assets/images/categories/limpieza.svg';
   }
 }

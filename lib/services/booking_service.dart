@@ -27,6 +27,28 @@ class BookingService {
 
   Uri _buildUri(String path) => Uri.parse('$_baseUrl$path');
 
+  Future<ApiResponse<BookingResponseDto>> createBooking(
+    BookingSaveDto request,
+  ) async {
+    final authToken = await SecureStorage.getToken();
+    final response = await _client.post(
+      _buildUri('/bookings/create'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        if (authToken != null && authToken.isNotEmpty)
+          'Authorization': 'Bearer $authToken',
+      },
+      body: jsonEncode(request.toJson()),
+    );
+
+    return _parseResponse<BookingResponseDto>(
+      response,
+      (data) =>
+          BookingResponseDto.fromJson(Map<String, dynamic>.from(data as Map)),
+    );
+  }
+
   Future<ApiResponse<List<BookingResponseDto>>> getBookingsByUser(
     int userId,
   ) async {

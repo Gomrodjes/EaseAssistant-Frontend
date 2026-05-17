@@ -6,17 +6,17 @@ import '../config/app_config.dart';
 import '../core/secure_storage.dart';
 import '../models/models.dart';
 
-class AddressException implements Exception {
+class PaymentServiceException implements Exception {
   final String message;
 
-  const AddressException(this.message);
+  const PaymentServiceException(this.message);
 
   @override
   String toString() => message;
 }
 
-class AddressService {
-  AddressService({
+class PaymentService {
+  PaymentService({
     http.Client? client,
     String? baseUrl,
   })  : _client = client ?? http.Client(),
@@ -27,52 +27,50 @@ class AddressService {
 
   Uri _buildUri(String path) => Uri.parse('$_baseUrl$path');
 
-  Future<ApiResponse<List<AddressResponseDto>>> getAddressesByUser(
-    int userId,
+  Future<ApiResponse<PaymentResponseDto>> createPayment(
+    PaymentSaveDto request,
   ) async {
     final authToken = await SecureStorage.getToken();
-    final response = await _client.get(
-      _buildUri('/addresses/$userId'),
+    final response = await _client.post(
+      _buildUri('/payments/create'),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         if (authToken != null && authToken.isNotEmpty)
           'Authorization': 'Bearer $authToken',
       },
+      body: jsonEncode(request.toJson()),
     );
 
-    return _parseResponse<List<AddressResponseDto>>(
+    return _parseResponse<PaymentResponseDto>(
       response,
-      (data) => (data as List<dynamic>)
-          .map(
-            (item) => AddressResponseDto.fromJson(
-              Map<String, dynamic>.from(item as Map),
-            ),
-          )
-          .toList(),
+      (data) => PaymentResponseDto.fromJson(
+        Map<String, dynamic>.from(data as Map),
+      ),
     );
   }
 
-  Future<ApiResponse<AddressResponseDto>> createAddress(
-    AddressSaveDto request,
-    {String? authToken}
+  Future<ApiResponse<PaymentResponseDto>> updatePayment(
+    int paymentId,
+    PaymentUpdateDto request,
   ) async {
-    final resolvedAuthToken = authToken ?? await SecureStorage.getToken();
-    final response = await _client.post(
-      _buildUri('/addresses/create'),
+    final authToken = await SecureStorage.getToken();
+    final response = await _client.put(
+      _buildUri('/payments/updateState/$paymentId'),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        if (resolvedAuthToken != null && resolvedAuthToken.isNotEmpty)
-          'Authorization': 'Bearer $resolvedAuthToken',
+        if (authToken != null && authToken.isNotEmpty)
+          'Authorization': 'Bearer $authToken',
       },
       body: jsonEncode(request.toJson()),
     );
 
-    return _parseResponse<AddressResponseDto>(
+    return _parseResponse<PaymentResponseDto>(
       response,
-      (data) =>
-          AddressResponseDto.fromJson(Map<String, dynamic>.from(data as Map)),
+      (data) => PaymentResponseDto.fromJson(
+        Map<String, dynamic>.from(data as Map),
+      ),
     );
   }
 
@@ -87,7 +85,7 @@ class AddressService {
       return apiResponse;
     }
 
-    throw AddressException(
+    throw PaymentServiceException(
       apiResponse.message.isNotEmpty
           ? apiResponse.message
           : 'Request failed with status ${response.statusCode}',
@@ -98,3 +96,4 @@ class AddressService {
     _client.close();
   }
 }
+

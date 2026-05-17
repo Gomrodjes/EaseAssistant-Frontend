@@ -90,6 +90,21 @@ class UserService {
     );
   }
 
+  Future<ApiResponse<void>> deleteUser(int userId) async {
+    final authToken = await SecureStorage.getToken();
+    final response = await _client.delete(
+      _buildUri('/users/delete/$userId'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        if (authToken != null && authToken.isNotEmpty)
+          'Authorization': 'Bearer $authToken',
+      },
+    );
+
+    return _parseResponse<void>(response, (_) {});
+  }
+
   ApiResponse<T> _parseResponse<T>(
     http.Response response,
     T Function(dynamic data) parser,

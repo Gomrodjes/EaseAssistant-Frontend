@@ -78,6 +78,29 @@ class UserServiceAssignmentService {
     );
   }
 
+  Future<ApiResponse<UserServiceAssignmentResponseDto>> activateAssignment({
+    required int userId,
+    required int categoryId,
+  }) async {
+    final authToken = await SecureStorage.getToken();
+    final response = await _client.put(
+      _buildUri('/assignments/user/$userId/service/$categoryId/activate'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        if (authToken != null && authToken.isNotEmpty)
+          'Authorization': 'Bearer $authToken',
+      },
+    );
+
+    return _parseResponse<UserServiceAssignmentResponseDto>(
+      response,
+      (data) => UserServiceAssignmentResponseDto.fromJson(
+        Map<String, dynamic>.from(data as Map),
+      ),
+    );
+  }
+
   ApiResponse<T> _parseResponse<T>(
     http.Response response,
     T Function(dynamic data) parser,

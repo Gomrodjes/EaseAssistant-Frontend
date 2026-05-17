@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:ease_assistant_frontend/views/user/assistant/application/assistant_profile_categories_screen.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
@@ -7,7 +8,6 @@ import '../../../../models/models.dart';
 import '../../../../services/application_service.dart';
 import '../../../../services/documentation_service.dart';
 import 'application_flow_widgets.dart';
-import 'waiting_application_responde_screen.dart';
 
 class AssistantRequiredDocumentsScreen extends StatefulWidget {
   const AssistantRequiredDocumentsScreen({
@@ -146,7 +146,7 @@ class _AssistantRequiredDocumentsScreenState
 
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute<void>(
-          builder: (_) => const WaitingApplicationRespondeScreen(),
+          builder: (_) => AssistantProfileCategoriesScreen(userId: widget.userId),
         ),
         (route) => false,
       );

@@ -10,6 +10,7 @@ import '../../../models/user_service_assignment_models.dart';
 import '../../../services/category_service.dart';
 import '../../../services/user_service.dart';
 import '../../../services/user_service_assignment_service.dart';
+import 'confirm_service.dart';
 
 class BuyServiceScreen extends StatefulWidget {
   const BuyServiceScreen({super.key});
@@ -71,6 +72,7 @@ class _BuyServiceScreenState extends State<BuyServiceScreen> {
             (user) =>
                 user.role == UserRole.assistant && user.isActive,
           )
+          .where((user) => user.documentationVerified)
           .toList()
         ..sort(
           (first, second) => first.fullName.toLowerCase().compareTo(
@@ -149,25 +151,17 @@ class _BuyServiceScreenState extends State<BuyServiceScreen> {
       return _assistants;
     }
 
-    CategoryResponseDto? selectedCategory;
-    for (final category in _categories) {
-      if (category.name.toLowerCase() == _selectedCategoryName!.toLowerCase()) {
-        selectedCategory = category;
-        break;
-      }
-    }
+    final selectedCategory = _findCategoryByName(_selectedCategoryName!);
 
     if (selectedCategory == null) {
       return _assistants;
     }
 
-    final activeCategory = selectedCategory;
-
     final allowedUserIds = _assignments
         .where(
           (assignment) =>
               assignment.active &&
-              _matchesCategoryService(activeCategory, assignment.serviceName),
+              _matchesCategoryAssignment(selectedCategory, assignment),
         )
         .map((assignment) => assignment.userId)
         .toSet();
@@ -177,14 +171,26 @@ class _BuyServiceScreenState extends State<BuyServiceScreen> {
         .toList();
   }
 
-  bool _matchesCategoryService(
+  CategoryResponseDto? _findCategoryByName(String categoryName) {
+    for (final category in _categories) {
+      if (_normalizeText(category.name) == _normalizeText(categoryName)) {
+        return category;
+      }
+    }
+
+    return null;
+  }
+
+  bool _matchesCategoryAssignment(
     CategoryResponseDto category,
-    String serviceName,
+    UserServiceAssignmentResponseDto assignment,
   ) {
-    final normalizedServiceName = _normalizeText(serviceName);
-    return category.serviceNames
-        .map(_normalizeText)
-        .contains(normalizedServiceName);
+    final categoryId = category.id;
+    if (categoryId != null && assignment.serviceId == categoryId) {
+      return true;
+    }
+
+    return _normalizeText(assignment.serviceName) == _normalizeText(category.name);
   }
 
   String _normalizeText(String value) {
@@ -321,6 +327,16 @@ class _BuyServiceScreenState extends State<BuyServiceScreen> {
                 assistant: assistant,
                 scale: scale,
                 hasSuperStar: assistant.averageRating >= 4.8,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => ConfirmServiceScreen(
+                        assistant: assistant,
+                        initialCategoryName: _selectedCategoryName,
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ),
@@ -334,11 +350,13 @@ class _AssistantCard extends StatelessWidget {
     required this.assistant,
     required this.scale,
     required this.hasSuperStar,
+    required this.onTap,
   });
 
   final UserResponseDto assistant;
   final double scale;
   final bool hasSuperStar;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -351,85 +369,93 @@ class _AssistantCard extends StatelessWidget {
             : flooredRating;
     final hasAnyRating = assistant.numberOfReviews > 0 || ratingValue > 0;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF8DB0D3),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(24 * scale),
-        border: Border.all(
-          color: hasSuperStar ? Colors.transparent : const Color(0xFF1E88E5),
-          width: hasSuperStar ? 0 : 2.5,
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x26000000),
-            blurRadius: 8,
-            offset: Offset(0, 3),
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF8DB0D3),
+            borderRadius: BorderRadius.circular(24 * scale),
+            border: Border.all(
+              color:
+                  hasSuperStar ? Colors.transparent : const Color(0xFF8DB0D3),
+              width: hasSuperStar ? 0 : 2.5,
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x26000000),
+                blurRadius: 8,
+                offset: Offset(0, 3),
+              ),
+            ],
           ),
-        ],
-      ),
-      padding: EdgeInsets.symmetric(
-        horizontal: 14 * scale,
-        vertical: 14 * scale,
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.account_circle_outlined,
-            color: AppColors.navyBlue,
-            size: 38 * scale,
+          padding: EdgeInsets.symmetric(
+            horizontal: 14 * scale,
+            vertical: 14 * scale,
           ),
-          SizedBox(width: 14 * scale),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  assistant.fullName.trim().isEmpty
-                      ? 'Nombre de usuario'
-                      : assistant.fullName.trim(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 16 * scale,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF1B3D5D),
-                  ),
-                ),
-                SizedBox(height: 6 * scale),
-                Row(
+          child: Row(
+            children: [
+              Icon(
+                Icons.account_circle_outlined,
+                color: AppColors.navyBlue,
+                size: 38 * scale,
+              ),
+              SizedBox(width: 14 * scale),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (hasAnyRating)
-                      ...List<Widget>.generate(
-                        fullStars,
-                        (index) => Padding(
-                          padding: EdgeInsets.only(right: 3 * scale),
-                          child: Icon(
-                            Icons.star_outline,
-                            color: AppColors.navyBlue,
-                            size: 15 * scale,
-                          ),
-                        ),
-                      )
-                    else
-                      Text(
-                        'Sin valoraciones',
-                        style: TextStyle(
-                          fontSize: 12 * scale,
-                          color: const Color(0xFF1B3D5D),
-                        ),
+                    Text(
+                      assistant.fullName.trim().isEmpty
+                          ? 'Nombre de usuario'
+                          : assistant.fullName.trim(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 16 * scale,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF1B3D5D),
                       ),
+                    ),
+                    SizedBox(height: 6 * scale),
+                    Row(
+                      children: [
+                        if (hasAnyRating)
+                          ...List<Widget>.generate(
+                            fullStars,
+                            (index) => Padding(
+                              padding: EdgeInsets.only(right: 3 * scale),
+                              child: Icon(
+                                Icons.star_outline,
+                                color: AppColors.navyBlue,
+                                size: 15 * scale,
+                              ),
+                            ),
+                          )
+                        else
+                          Text(
+                            'Sin valoraciones',
+                            style: TextStyle(
+                              fontSize: 12 * scale,
+                              color: const Color(0xFF1B3D5D),
+                            ),
+                          ),
+                      ],
+                    ),
                   ],
                 ),
-              ],
-            ),
+              ),
+              if (hasSuperStar)
+                Icon(
+                  Icons.auto_awesome,
+                  color: AppColors.navyBlue,
+                  size: 34 * scale,
+                ),
+            ],
           ),
-          if (hasSuperStar)
-            Icon(
-              Icons.auto_awesome,
-              color: AppColors.navyBlue,
-              size: 34 * scale,
-            ),
-        ],
+        ),
       ),
     );
   }
@@ -473,7 +499,7 @@ class _CategoryFilterList extends StatelessWidget {
                     height: 56 * scale,
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? const Color(0xFFD9EBFB)
+                          ? const Color(0xFF8DB0D3)
                           : Colors.transparent,
                       shape: BoxShape.circle,
                     ),

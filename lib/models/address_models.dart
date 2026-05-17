@@ -29,7 +29,7 @@ class AddressResponseDto {
       country: json['country']?.toString() ?? '',
       zipCode: json['zipCode']?.toString() ?? '',
       description: JsonUtils.asString(json['description']),
-      isPrimary: JsonUtils.asBool(json['primary'] ?? json['isPrimary']) ?? false,
+      isPrimary: JsonUtils.asBool(json['isPrimary']) ?? false,
       userId: JsonUtils.asInt(json['userId']) ?? 0,
     );
   }
@@ -71,7 +71,7 @@ class AddressSaveDto {
         'country': country,
         'zipCode': zipCode,
         'description': description,
-        'primary': isPrimary,
+        'isPrimary': isPrimary,
         'userId': userId,
       };
 }
