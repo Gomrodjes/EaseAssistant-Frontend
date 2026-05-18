@@ -25,4 +25,4 @@ class AppConfig {
 
     return baseUrlLocal;
   }
-}
+} 
