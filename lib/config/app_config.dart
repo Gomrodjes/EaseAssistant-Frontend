@@ -10,7 +10,7 @@ class AppConfig {
 
   static const String baseUrlHost = String.fromEnvironment(
     'API_BASE_URL_HOST',
-    defaultValue: '',
+    defaultValue: 'http://172.20.10.2:8082',
   );
 
   static String get apiBaseUrl {
@@ -19,7 +19,8 @@ class AppConfig {
     }
 
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      // En Android emulator "localhost" apunta al emulador, no al backend del host.
+      // En Android emulator, localhost apunta al propio emulador.
+      // 10.0.2.2 redirige al host donde corre el backend.
       return baseUrlLocal.replaceFirst('localhost', '10.0.2.2');
     }
 

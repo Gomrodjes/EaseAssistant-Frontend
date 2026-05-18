@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:ease_assistant_frontend/core/secure_storage.dart';
 import 'package:ease_assistant_frontend/models/models.dart';
 import 'package:ease_assistant_frontend/services/application_service.dart';
 import 'package:ease_assistant_frontend/services/auth_service.dart';
+import 'package:ease_assistant_frontend/services/notification_service.dart';
 import 'package:ease_assistant_frontend/services/user_service.dart';
 import 'package:ease_assistant_frontend/views/user/assistant/application/waiting_application_responde_screen.dart';
 import 'package:flutter/material.dart';
@@ -11,7 +14,7 @@ import '../../config/app_colors.dart';
 import '../../config/measures.dart';
 import '../admin/admin_home_screen.dart';
 import '../user/assistant/assistant_verified_home_screen.dart';
-import '../user/assistant/assistant_verify_home_screen .dart';
+import '../user/assistant/assistant_verify_home_screen.dart';
 import '../user/client/client_home_screen.dart';
 import 'register_screen.dart';
 
@@ -74,6 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       await SecureStorage.saveToken(token);
+      unawaited(NotificationService.instance.syncTokenWithBackend());
       final role = SecureStorage.getRoleFromToken(token);
       final email = SecureStorage.getEmailFromToken(token);
       final user = await _getAuthenticatedUser(email);
@@ -117,6 +121,26 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(e.message)));
+    } on UserServiceException catch (e) {
+      await SecureStorage.deleteToken();
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
+    } on ApplicationServiceException catch (e) {
+      await SecureStorage.deleteToken();
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
+    } on TimeoutException {
+      await SecureStorage.deleteToken();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('La solicitud ha tardado demasiado. Intentalo de nuevo.'),
+        ),
+      );
     } catch (_) {
       await SecureStorage.deleteToken();
       if (!mounted) return;

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1054469933249",
+    "project_id": "easeassistant-tfg",
+    "storage_bucket": "easeassistant-tfg.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1054469933249:android:918c5dc7eeafed7cb6ec40",
+        "android_client_info": {
+          "package_name": "com.example.ease_assistant_frontend"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyACilwbm-Yvw2NaYhVY8npvH2L_hnCOtgY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
