@@ -4,7 +4,6 @@ import '../../config/app_colors.dart';
 import '../../config/measures.dart';
 import '../../core/secure_storage.dart';
 import '../../models/models.dart';
-import '../../services/notification_service.dart';
 import '../../services/user_service.dart';
 import '../auth/login_screen.dart';
 
@@ -92,7 +91,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _isLoggingOut = true;
     });
 
-    await NotificationService.instance.unregisterDeviceFromBackend();
     await SecureStorage.deleteToken();
     if (!mounted) return;
 
@@ -135,7 +133,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
-      await NotificationService.instance.unregisterDeviceFromBackend();
       await _userService.deleteUser(_currentUser!.id!);
       await SecureStorage.deleteToken();
 

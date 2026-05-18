@@ -1,20 +1,14 @@
 import 'dart:async';
 
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'config/app_colors.dart';
 import 'config/measures.dart';
-import 'services/notification_service.dart';
 import 'views/auth/login_screen.dart';
 
-
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  await NotificationService.instance.initialize();
+void main() {
   runApp(const MyApp());
 }
 

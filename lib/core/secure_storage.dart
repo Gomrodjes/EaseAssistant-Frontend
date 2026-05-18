@@ -6,7 +6,6 @@ class SecureStorage {
 
   static final _storage = FlutterSecureStorage();
   static const _tokenKey = 'jwt_key';
-  static const _fcmTokenKey = 'fcm_token_key';
 
   static Future<void> saveToken(String token) async {
     await _storage.write(key: _tokenKey, value: token);
@@ -18,18 +17,6 @@ class SecureStorage {
 
   static Future<void> deleteToken() async {
     await _storage.delete(key: _tokenKey);
-  }
-
-  static Future<void> saveFcmToken(String token) async {
-    await _storage.write(key: _fcmTokenKey, value: token);
-  }
-
-  static Future<String?> getFcmToken() async {
-    return await _storage.read(key: _fcmTokenKey);
-  }
-
-  static Future<void> deleteFcmToken() async {
-    await _storage.delete(key: _fcmTokenKey);
   }
 
   static String getRoleFromToken(String token) {
