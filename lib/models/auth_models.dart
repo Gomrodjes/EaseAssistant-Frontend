@@ -12,3 +12,15 @@ class LoginRequestDto {
         'password': password,
       };
 }
+
+class VerificationEmailRequestDto {
+  final String email;
+
+  const VerificationEmailRequestDto({
+    required this.email,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'email': email,
+      };
+}

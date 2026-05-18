@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../config/app_colors.dart';
 import '../../config/measures.dart';
+import 'check_verified.dart';
 import 'login_screen.dart';
 
 class TypeAccountScreen extends StatefulWidget {
@@ -49,6 +50,16 @@ class _TypeAccountScreenState extends State<TypeAccountScreen> {
     }
   }
 
+  Future<void> _goToVerification(UserResponseDto user) async {
+    if (!mounted) return;
+
+    await Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (_) => CheckVerifiedScreen(user: user),
+      ),
+    );
+  }
+
   Future<void> _becomeAssistant() async {
     if (_isSubmitting) return;
 
@@ -63,14 +74,17 @@ class _TypeAccountScreenState extends State<TypeAccountScreen> {
     });
 
     try {
-      await _userService.updateUserRole(
+      final response = await _userService.updateUserRole(
         userId,
         const UserRoleUpdateDto(role: UserRole.assistant),
       );
 
-      await _goToLogin(
-        message: 'Tu cuenta ya esta configurada como asistente. Inicia sesion.',
-      );
+      final updatedUser = response.data;
+      if (updatedUser == null) {
+        throw const UserServiceException('No se pudo actualizar el tipo de cuenta.');
+      }
+
+      await _goToVerification(updatedUser);
     } on UserServiceException catch (e) {
       _showMessage(e.message);
     } catch (_) {
@@ -138,7 +152,7 @@ class _TypeAccountScreenState extends State<TypeAccountScreen> {
                     SizedBox(height: 20 * scale),
                     _AccountTypeButton(
                       label: 'Contratar Ayuda',
-                      onPressed: _isSubmitting ? null : () => _goToLogin(),
+                      onPressed: _isSubmitting ? null : () => _goToVerification(widget.createdUser),
                     ),
                     SizedBox(height: 16 * scale),
                     _AccountTypeButton(

@@ -50,6 +50,25 @@ class UserService {
     );
   }
 
+  Future<UserResponseDto> getUserById(int userId) async {
+    final response = await getAllUsers();
+    final users = response.data ?? const <UserResponseDto>[];
+    UserResponseDto? user;
+
+    for (final item in users) {
+      if (item.id == userId) {
+        user = item;
+        break;
+      }
+    }
+
+    if (user == null) {
+      throw const UserServiceException('No se pudo obtener el usuario.');
+    }
+
+    return user;
+  }
+
   Future<ApiResponse<UserResponseDto>> updateUserRole(
     int userId,
     UserRoleUpdateDto request,
