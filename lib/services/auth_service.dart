@@ -58,6 +58,36 @@ class AuthService {
     );
   }
 
+  Future<ApiResponse<void>> sendVerificationEmail(
+    VerificationEmailRequestDto request,
+  ) async {
+    final response = await _client.post(
+      _buildUri('/auth/send/verification'),
+      headers: const {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode(request.toJson()),
+    );
+
+    return _parseResponse<void>(response, (_) {});
+  }
+
+  Future<ApiResponse<UserResponseDto>> getVerificationStatus(int userId) async {
+    final response = await _client.get(
+      _buildUri('/auth/verification-status/$userId'),
+      headers: const {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+    );
+
+    return _parseResponse<UserResponseDto>(
+      response,
+      (data) => UserResponseDto.fromJson(Map<String, dynamic>.from(data as Map)),
+    );
+  }
+
   ApiResponse<T> _parseResponse<T>(
     http.Response response,
     T Function(dynamic data) parser,
