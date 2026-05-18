@@ -10,7 +10,7 @@ class AppConfig {
 
   static const String baseUrlHost = String.fromEnvironment(
     'API_BASE_URL_HOST',
-    defaultValue: '',
+    defaultValue: 'https://easeassistant-backend.onrender.com',
   );
 
   static String get apiBaseUrl {
